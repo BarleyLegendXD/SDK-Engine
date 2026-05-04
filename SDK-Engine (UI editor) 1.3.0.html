@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>SDK-Engine (UI Editor)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0d0808;
+    --panel: #130d0d;
+    --panel2: #1a1010;
+    --border: #2e1a1a;
+    --accent: #c0392b;
+    --accent2: #e67e22;
+    --accent3: #e74c3c;
+    --text: #d8c8c8;
+    --text-dim: #7a5a5a;
+    --sel: rgba(192,57,43,0.15);
+    --sel-border: #c0392b;
+    --static-c: #8e9eab;
+    --physics-c: #e67e22;
+    --player-c: #27ae60;
+    --group-c: #9b59b6;
+    --grid: rgba(46,26,26,0.6);
+    --handle: #c0392b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    overflow: hidden;
+    user-select: none;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  
+  #topbar {
+    height: 44px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+  }
+
+  #topbar .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-right: 12px;
+    text-shadow: none;
+  }
+
+  .sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+  .tb-btn {
+    height: 30px;
+    padding: 0 14px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tb-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(192,57,43,0.08); }
+  .tb-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .tb-btn.primary:hover { background: #a93226; box-shadow: none; }
+  .tb-btn.danger { border-color: #ff3355; color: #ff3355; }
+  .tb-btn.danger:hover { background: rgba(255,51,85,0.12); }
+
+  .tb-btn-add {
+    width: 30px; height: 30px; padding: 0;
+    font-size: 18px; font-weight: 300;
+    background: rgba(192,57,43,0.12);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .tb-btn-add:hover { background: var(--accent); color: #fff; box-shadow: none; }
+
+  #filename-display {
+    margin-left: auto;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+  #filename-display span { color: var(--accent3); }
+
+  
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  
+  #left-panel {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 8px 12px;
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  #add-block-area {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  
+  #props-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #props-area::-webkit-scrollbar { width: 4px; }
+  #props-area::-webkit-scrollbar-track { background: transparent; }
+  #props-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .prop-section {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .prop-section-title {
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .prop-row {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+    gap: 8px;
+    border-bottom: 1px solid rgba(30,42,60,0.5);
+  }
+  .prop-row:last-child { border-bottom: none; }
+  .prop-label { color: var(--text-dim); font-size: 11px; flex-shrink: 0; width: 52px; }
+  .prop-value { color: var(--text); font-size: 11px; }
+
+  input[type="number"], input[type="text"] {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    width: 100%;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input[type="number"]:focus, input[type="text"]:focus { border-color: var(--accent); }
+
+  
+  .type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 8px;
+  }
+  .type-btn {
+    padding: 6px 4px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .type-btn:hover { border-color: #666; color: var(--text); }
+  .type-btn.active-static { border-color: var(--static-c); color: var(--static-c); background: rgba(142,158,171,0.1); }
+  .type-btn.active-physics { border-color: var(--physics-c); color: var(--physics-c); background: rgba(230,126,34,0.1); }
+  .type-btn.active-player { border-color: var(--player-c); color: var(--player-c); background: rgba(39,174,96,0.1); }
+  .type-btn.active-kinematic { border-color: var(--group-c); color: var(--group-c); background: rgba(155,89,182,0.1); }
+
+  
+  .color-palette {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    padding: 8px;
+  }
+  .color-swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.1s, border-color 0.1s;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: white; transform: scale(1.1); }
+  input[type="color"] {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 2px solid var(--border);
+    border-radius: 3px;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+  }
+
+  
+  .group-btns { padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+  .group-btn {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .group-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(192,57,43,0.06); }
+  .group-btn.merge-btn:hover { border-color: var(--group-c); color: var(--group-c); background: rgba(155,89,182,0.08); }
+
+  
+  .rotation-wrap { padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: none;
+  }
+  .rot-val { color: var(--accent); font-size: 11px; width: 36px; text-align: right; }
+
+  
+  #canvas-wrap {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg);
+    cursor: default;
+  }
+
+  #canvas {
+    position: absolute;
+    top: 0; left: 0;
+    image-rendering: pixelated;
+  }
+
+  
+  .coord-label {
+    position: absolute;
+    background: rgba(0,0,0,0.75);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    pointer-events: none;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    border: 1px solid rgba(192,57,43,0.3);
+  }
+
+  
+  #right-panel {
+    width: 190px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  #right-panel::-webkit-scrollbar { width: 3px; }
+  #right-panel::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(30,42,60,0.5);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-key { color: var(--text-dim); font-size: 10px; }
+  .stat-val { color: var(--accent); font-size: 11px; font-weight: 600; }
+  .stat-val.orange { color: var(--accent2); }
+  .stat-val.green { color: var(--accent3); }
+  .stat-val.purple { color: var(--group-c); }
+
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 10px;
+  }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  
+  #statusbar {
+    height: 24px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  #statusbar span { color: var(--text); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); box-shadow: none; }
+
+  
+  #empty-hint {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+  #empty-hint .big { font-size: 52px; opacity: 0.1; }
+  #empty-hint p { font-size: 11px; margin-top: 8px; opacity: 0.4; }
+
+  
+  #notif {
+    position: fixed;
+    bottom: 36px; right: 16px;
+    background: var(--panel2);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 999;
+    pointer-events: none;
+  }
+  #notif.show { opacity: 1; }
+
+  
+  #props-placeholder {
+    padding: 16px 10px;
+    color: var(--text-dim);
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo">⬡ SDK-Engine (UI Editor)</div>
+  <div class="sep"></div>
+  <button class="tb-btn-add" id="btn-add" title="Добавить блок (+)">+</button>
+  <div class="sep"></div>
+  <button class="tb-btn" id="btn-grid">⊞ Сетка</button>
+  <button class="tb-btn" id="btn-snap">⌗ Snap</button>
+  <button class="tb-btn" id="btn-clear" style="margin-left:4px;">⌫ Очистить</button>
+  <div class="sep"></div>
+  <button class="tb-btn primary" id="btn-export">↯ Экспорт .py</button>
+  <div id="filename-display">Файл: <span id="fname-lbl">location.py</span></div>
+</div>
+
+<div id="main">
+
+  
+  <div id="left-panel">
+    <div class="panel-header">Свойства</div>
+
+    <div id="add-block-area">
+      <button class="tb-btn" id="btn-add2" style="width:100%;justify-content:center;">+ Добавить блок</button>
+    </div>
+
+    <div id="props-area">
+      <div id="props-placeholder">
+        Выберите блок<br>чтобы увидеть<br>его свойства
+      </div>
+      <div id="props-content" style="display:none; flex-direction:column; gap:10px;">
+
+        
+        <div class="prop-section">
+          <div class="prop-section-title">Позиция</div>
+          <div class="prop-row">
+            <span class="prop-label">X</span>
+            <input type="number" id="prop-x" step="1">
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Y</span>
+            <input type="number" id="prop-y" step="1">
+          </div>
+        </div>
+
+        
+        <div class="prop-section">
+          <div class="prop-section-title">Размер</div>
+          <div class="prop-row">
+            <span class="prop-label">W</span>
+            <input type="number" id="prop-w" step="1" min="10">
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">H</span>
+            <input type="number" id="prop-h" step="1" min="10">
+          </div>
+        </div>
+
+        
+        <div class="prop-section">
+          <div class="prop-section-title">Тип объекта</div>
+          <div class="type-grid">
+            <button class="type-btn" data-type="static">⬛ Статичный</button>
+            <button class="type-btn" data-type="physics">⚙ Физика</button>
+            <button class="type-btn" data-type="player">▶ Игрок</button>
+            <button class="type-btn" data-type="kinematic">◆ Кинемат.</button>
+          </div>
+        </div>
+
+        
+        <div class="prop-section">
+          <div class="prop-section-title">Вращение</div>
+          <div class="rotation-wrap">
+            <input type="range" id="prop-rot" min="0" max="360" step="1" value="0">
+            <span class="rot-val" id="rot-lbl">0°</span>
+          </div>
+        </div>
+
+        
+        <div class="prop-section">
+          <div class="prop-section-title">Цвет</div>
+          <div class="color-palette">
+            <!-- Reds -->
+            <div class="color-swatch" style="background:#c0392b" data-color="#c0392b"></div>
+            <div class="color-swatch" style="background:#e74c3c" data-color="#e74c3c"></div>
+            <div class="color-swatch" style="background:#ff6b6b" data-color="#ff6b6b"></div>
+            <div class="color-swatch" style="background:#ff9999" data-color="#ff9999"></div>
+            <!-- Oranges -->
+            <div class="color-swatch" style="background:#e67e22" data-color="#e67e22"></div>
+            <div class="color-swatch" style="background:#f39c12" data-color="#f39c12"></div>
+            <div class="color-swatch" style="background:#ffcc44" data-color="#ffcc44"></div>
+            <div class="color-swatch" style="background:#ffeaa7" data-color="#ffeaa7"></div>
+            <!-- Greens -->
+            <div class="color-swatch" style="background:#27ae60" data-color="#27ae60"></div>
+            <div class="color-swatch" style="background:#2ecc71" data-color="#2ecc71"></div>
+            <div class="color-swatch" style="background:#a8e063" data-color="#a8e063"></div>
+            <div class="color-swatch" style="background:#55efc4" data-color="#55efc4"></div>
+            <!-- Blues -->
+            <div class="color-swatch" style="background:#2980b9" data-color="#2980b9"></div>
+            <div class="color-swatch" style="background:#3498db" data-color="#3498db"></div>
+            <div class="color-swatch" style="background:#74b9ff" data-color="#74b9ff"></div>
+            <div class="color-swatch" style="background:#a8d8f0" data-color="#a8d8f0"></div>
+            <!-- Purples -->
+            <div class="color-swatch" style="background:#8e44ad" data-color="#8e44ad"></div>
+            <div class="color-swatch" style="background:#9b59b6" data-color="#9b59b6"></div>
+            <div class="color-swatch" style="background:#bf7fff" data-color="#bf7fff"></div>
+            <div class="color-swatch" style="background:#dda0dd" data-color="#dda0dd"></div>
+            <!-- Greys/Neutral -->
+            <div class="color-swatch" style="background:#2c3e50" data-color="#2c3e50"></div>
+            <div class="color-swatch" style="background:#7f8c8d" data-color="#7f8c8d"></div>
+            <div class="color-swatch" style="background:#bdc3c7" data-color="#bdc3c7"></div>
+            <div class="color-swatch" style="background:#ffffff" data-color="#ffffff"></div>
+            <!-- Custom picker row -->
+            <div class="color-swatch" style="background:#1a1a2e" data-color="#1a1a2e"></div>
+            <div class="color-swatch" style="background:#16213e" data-color="#16213e"></div>
+            <div class="color-swatch" style="background:#0f3460" data-color="#0f3460"></div>
+            <input type="color" id="custom-color" value="#c0392b" title="Свой цвет" style="width:100%;aspect-ratio:1;border:2px solid var(--border);border-radius:3px;padding:0;cursor:pointer;background:none;">
+          </div>
+        </div>
+
+        
+        <div class="prop-section">
+          <div class="prop-section-title">Слой</div>
+          <div class="prop-row">
+            <span class="prop-label">Layer</span>
+            <input type="number" id="prop-layer" step="1" min="0" max="99" value="0">
+          </div>
+          <div class="prop-row">
+            <span class="prop-label">Имя</span>
+            <input type="text" id="prop-name" placeholder="obj_0">
+          </div>
+        </div>
+
+        
+        <div class="prop-section" id="group-section">
+          <div class="prop-section-title">Группы / Действия</div>
+          <div class="group-btns">
+            <button class="group-btn merge-btn" id="btn-group">⬡ Группировать выбранные</button>
+            <button class="group-btn" id="btn-ungroup">⬡ Разгруппировать</button>
+            <button class="group-btn danger" id="btn-delete-sel" style="border-color:#ff3355;color:#ff3355">✕ Удалить выбранное</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+    <div id="empty-hint">
+      <div class="big">⬡</div>
+      <p>Нажмите + чтобы добавить блок<br>ПКМ — двигать камеру</p>
+    </div>
+  </div>
+
+  
+  <div id="right-panel">
+    <div class="panel-header">Статистика</div>
+    <div class="prop-section" style="margin:8px; border-radius:6px;">
+      <div class="stat-row"><span class="stat-key">Всего блоков</span><span class="stat-val" id="stat-total">0</span></div>
+      <div class="stat-row"><span class="stat-key">Статичных</span><span class="stat-val" id="stat-static">0</span></div>
+      <div class="stat-row"><span class="stat-key">Физич.</span><span class="stat-val orange" id="stat-physics">0</span></div>
+      <div class="stat-row"><span class="stat-key">Игроков</span><span class="stat-val green" id="stat-player">0</span></div>
+      <div class="stat-row"><span class="stat-key">Кинемат.</span><span class="stat-val purple" id="stat-kine">0</span></div>
+      <div class="stat-row"><span class="stat-key">Групп</span><span class="stat-val" id="stat-groups">0</span></div>
+      <div class="stat-row"><span class="stat-key">Выбрано</span><span class="stat-val" id="stat-sel">0</span></div>
+    </div>
+
+    <div class="panel-header" style="margin-top:4px;">Выделение</div>
+    <div class="prop-section" style="margin:8px; border-radius:6px;" id="sel-info">
+      <div class="stat-row"><span class="stat-key">Имя</span><span class="stat-val" id="sel-name">—</span></div>
+      <div class="stat-row"><span class="stat-key">Тип</span><span class="stat-val" id="sel-type">—</span></div>
+      <div class="stat-row"><span class="stat-key">Позиция</span><span class="stat-val" id="sel-pos">—</span></div>
+      <div class="stat-row"><span class="stat-key">Размер</span><span class="stat-val" id="sel-size">—</span></div>
+      <div class="stat-row"><span class="stat-key">Угол</span><span class="stat-val" id="sel-angle">0°</span></div>
+    </div>
+
+    <div class="panel-header" style="margin-top:4px;">Легенда</div>
+    <div style="padding:6px 8px; display:flex; flex-direction:column; gap:3px;">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--static-c)"></div><span style="font-size:10px;color:var(--text-dim)">Статичный</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--physics-c)"></div><span style="font-size:10px;color:var(--text-dim)">Физика (динамика)</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--player-c)"></div><span style="font-size:10px;color:var(--text-dim)">Игрок</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--group-c)"></div><span style="font-size:10px;color:var(--text-dim)">Кинематика</span></div>
+    </div>
+
+    <div class="panel-header" style="margin-top:4px;">Управление</div>
+    <div style="padding:8px 10px; display:flex; flex-direction:column; gap:3px; color:var(--text-dim); font-size:10px; line-height:1.8;">
+      <span><span style="color:var(--accent)">ЛКМ</span> — выбрать/двигать</span>
+      <span><span style="color:var(--accent)">ПКМ</span> — камера</span>
+      <span><span style="color:var(--accent)">Shift+ЛКМ</span> — мульти-выбор</span>
+      <span><span style="color:var(--accent)">Del</span> — удалить</span>
+      <span><span style="color:var(--accent)">+</span> — добавить блок</span>
+      <span><span style="color:var(--accent)">Ctrl+G</span> — группировать</span>
+      <span><span style="color:var(--accent)">↕ Ручки</span> — масштаб</span>
+      <span><span style="color:var(--accent)">⦾ Угол</span> — вращение</span>
+    </div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <div class="status-dot"></div>
+  <span id="sb-mode">Редактор</span>
+  <span>|</span>
+  <span>Камера: <span id="sb-cam">0, 0</span></span>
+  <span>|</span>
+  <span>Мышь: <span id="sb-mouse">0, 0</span></span>
+  <span>|</span>
+  <span>Мир: <span id="sb-world">0, 0</span></span>
+</div>
+
+<div id="notif"></div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+
+let blocks = [];
+let groups = [];
+let selected = [];
+let camX = 0, camY = 0;
+let showGrid = true;
+let snapEnabled = true;
+const SNAP = 16;
+let objCount = 0;
+let groupCount = 0;
+
+let dragState = null; 
+let lastMouse = {x:0,y:0};
+
+const TYPE_COLORS = {
+  static: '#8e9eab',
+  physics: '#e67e22',
+  player: '#27ae60',
+  kinematic: '#9b59b6'
+};
+
+function createBlock(wx, wy) {
+  objCount++;
+  return {
+    id: objCount,
+    name: `obj_${objCount}`,
+    x: wx, y: wy,
+    w: 80, h: 60,
+    type: 'static',
+    color: '#8e9eab',
+    angle: 0,
+    layer: 0,
+    groupId: null
+  };
+}
+
+function resizeCanvas() {
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  render();
+}
+
+function worldToScreen(wx, wy) {
+  return { x: wx - camX, y: wy - camY };
+}
+function screenToWorld(sx, sy) {
+  return { x: sx + camX, y: sy + camY };
+}
+function snap(v) {
+  return snapEnabled ? Math.round(v / SNAP) * SNAP : v;
+}
+
+function getBlockHandle(block, sx, sy) {
+  const {x,y,w,h,angle} = block;
+  const cx = x + w/2 - camX, cy = y + h/2 - camY;
+  const dx = sx - cx, dy = sy - cy;
+  const ra = -angle * Math.PI/180;
+  const lx = dx*Math.cos(ra) - dy*Math.sin(ra);
+  const ly = dx*Math.sin(ra) + dy*Math.cos(ra);
+  const hw = w/2, hh = h/2;
+  const HS = 8; 
+
+  
+  const handles = [
+    {id:'n',  lx:0,   ly:-hh},
+    {id:'s',  lx:0,   ly:hh},
+    {id:'e',  lx:hw,  ly:0},
+    {id:'w',  lx:-hw, ly:0},
+  ];
+  for (const h of handles) {
+    if (Math.abs(lx - h.lx) < HS && Math.abs(ly - h.ly) < HS) return {type:'resize', dir:h.id};
+  }
+  
+  const rotHandleLX = hw + 14, rotHandleLY = -hh - 14;
+  if (Math.abs(lx - rotHandleLX) < 10 && Math.abs(ly - rotHandleLY) < 10) return {type:'rotate'};
+  
+  if (lx > -hw && lx < hw && ly > -hh && ly < hh) return {type:'body'};
+  return null;
+}
+
+function hitTestBlock(block, sx, sy) {
+  return getBlockHandle(block, sx, sy) !== null;
+}
+
+function getTopBlockAt(sx, sy) {
+  for (let i = blocks.length-1; i >= 0; i--) {
+    if (hitTestBlock(blocks[i], sx, sy)) return blocks[i];
+  }
+  return null;
+}
+
+function render() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  
+  ctx.fillStyle = '#0d0808';
+  ctx.fillRect(0,0,W,H);
+
+  
+  if (showGrid) drawGrid(W,H);
+
+  
+  blocks.forEach(b => drawBlock(b));
+
+  
+  if (dragState && dragState.type === 'marquee') {
+    const {mx,my,cx,cy} = dragState;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(192,57,43,0.8)';
+    ctx.fillStyle = 'rgba(192,57,43,0.06)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,3]);
+    const rx = Math.min(mx,cx), ry = Math.min(my,cy);
+    const rw = Math.abs(cx-mx), rh = Math.abs(cy-my);
+    ctx.fillRect(rx,ry,rw,rh);
+    ctx.strokeRect(rx,ry,rw,rh);
+    ctx.restore();
+  }
+
+  
+  blocks.forEach(b => {
+    const sx = b.x + b.w/2 - camX;
+    const sy = b.y - camY;
+    drawCoordLabel(b, sx, sy - 14);
+  });
+
+  updateStats();
+  updateRightInfo();
+  updateStatusBar();
+}
+
+function drawGrid(W, H) {
+  const step = SNAP;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(46,26,26,0.8)';
+  ctx.lineWidth = 0.5;
+  const startX = -(camX % step); 
+  const startY = -(camY % step);
+  for (let x = startX; x < W; x += step) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for (let y = startY; y < H; y += step) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  
+  ctx.strokeStyle = 'rgba(70,35,35,0.9)';
+  ctx.lineWidth = 0.7;
+  const big = step*4;
+  const bsx = -((camX) % big);
+  const bsy = -((camY) % big);
+  for (let x = bsx; x < W; x += big) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for (let y = bsy; y < H; y += big) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBlock(b) {
+  const sx = b.x - camX, sy = b.y - camY;
+  const cx = sx + b.w/2, cy = sy + b.h/2;
+  const isSel = selected.includes(b);
+  const angle = b.angle * Math.PI / 180;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  const hw = b.w/2, hh = b.h/2;
+
+  const typeVisual = {
+    static:    { fill: '#252020', border: '#8e9eab', label: '#8e9eab', text: '#7a7a7a' },
+    physics:   { fill: '#2a1500', border: '#e67e22', label: '#e67e22', text: '#cc8844' },
+    player:    { fill: '#001a0a', border: '#27ae60', label: '#27ae60', text: '#229955' },
+    kinematic: { fill: '#180a28', border: '#9b59b6', label: '#9b59b6', text: '#7b4499' }
+  };
+  const vis = typeVisual[b.type] || typeVisual.static;
+
+  ctx.fillStyle = vis.fill;
+  ctx.strokeStyle = isSel ? '#c0392b' : vis.border;
+  ctx.lineWidth = isSel ? 2 : 1.5;
+  ctx.beginPath();
+  ctx.rect(-hw, -hh, b.w, b.h);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = vis.border;
+  ctx.fillRect(-hw, -hh, 3, b.h);
+
+  const typeLabel = {static:'STATIC',physics:'PHYS',player:'PLAYER',kinematic:'KINE'}[b.type];
+  ctx.fillStyle = vis.label;
+  ctx.font = '8px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(typeLabel, 0, -hh + 12);
+
+  ctx.fillStyle = vis.text;
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillText(b.name, 0, hh - 5);
+
+  if (b.groupId !== null) {
+    ctx.fillStyle = '#9b59b6';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(`G${b.groupId}`, hw-3, -hh+10);
+  }
+
+  if (isSel) {
+    // Selection: dashed red outline, no glow
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 3]);
+    ctx.strokeRect(-hw, -hh, b.w, b.h);
+    ctx.setLineDash([]);
+
+    // Resize handles - small squares
+    ctx.fillStyle = '#c0392b';
+    ctx.strokeStyle = '#0d0808';
+    ctx.lineWidth = 1;
+    [[0,-hh],[0,hh],[hw,0],[-hw,0]].forEach(([hx,hy]) => {
+      ctx.fillRect(hx-4, hy-4, 8, 8);
+      ctx.strokeRect(hx-4, hy-4, 8, 8);
+    });
+
+    // Rotate handle
+    const rox = hw + 14, roy = -hh - 14;
+    ctx.strokeStyle = 'rgba(192,57,43,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(hw, -hh); ctx.lineTo(rox, roy); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#e67e22';
+    ctx.strokeStyle = '#0d0808';
+    ctx.lineWidth = 1;
+    ctx.fillRect(rox-4, roy-4, 8, 8);
+    ctx.strokeRect(rox-4, roy-4, 8, 8);
+  }
+
+  ctx.restore();
+}
+
+function drawCoordLabel(b, sx, sy) {
+  const txt = `(${Math.round(b.x)}, ${Math.round(b.y)})`;
+  ctx.save();
+  ctx.font = '9px JetBrains Mono, monospace';
+  const tw = ctx.measureText(txt).width;
+  const px = sx - tw/2 - 4, py = sy - 9;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  roundRect(ctx, px, py, tw+8, 14, 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(192,57,43,0.3)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.fillStyle = '#c0392b';
+  ctx.textAlign = 'center';
+  ctx.fillText(txt, sx, py + 10);
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function addBlock() {
+  const wx = snap(camX + canvas.width/2 - 40);
+  const wy = snap(camY + canvas.height/2 - 30);
+  const b = createBlock(wx, wy);
+  blocks.push(b);
+  selected = [b];
+  document.getElementById('empty-hint').style.display = 'none';
+  updatePropsPanel();
+  render();
+  notify(`Блок "${b.name}" добавлен`);
+}
+
+canvas.addEventListener('mousedown', e => {
+  const sx = e.offsetX, sy = e.offsetY;
+  const isSel = (b) => selected.includes(b);
+
+  if (e.button === 2) {
+    
+    dragState = {type:'cam', startX:sx, startY:sy, camX0:camX, camY0:camY};
+    canvas.style.cursor = 'grab';
+    return;
+  }
+
+  if (e.button === 0) {
+    
+    for (const b of [...selected].reverse()) {
+      const h = getBlockHandle(b, sx, sy);
+      if (!h) continue;
+      if (h.type === 'rotate') {
+        const bcx = b.x + b.w/2 - camX;
+        const bcy = b.y + b.h/2 - camY;
+        const startAngle = Math.atan2(sy - bcy, sx - bcx) * 180/Math.PI;
+        dragState = {type:'rotate', block:b, startAngle, blockAngle0: b.angle};
+        return;
+      }
+      if (h.type === 'resize') {
+        dragState = {type:'resize', block:b, dir:h.dir, sx0:sx, sy0:sy, bx0:b.x, by0:b.y, bw0:b.w, bh0:b.h};
+        return;
+      }
+      if (h.type === 'body') {
+        if (!e.shiftKey) {
+          if (!isSel(b)) selected = [b];
+        } else {
+          if (isSel(b)) selected = selected.filter(x=>x!==b);
+          else selected.push(b);
+        }
+        const snapOffsets = selected.map(s => ({block:s, ox:s.x, oy:s.y}));
+        dragState = {type:'move', startX:sx, startY:sy, snapOffsets};
+        updatePropsPanel();
+        render();
+        return;
+      }
+    }
+
+    
+    const hit = getTopBlockAt(sx, sy);
+    if (hit) {
+      const h = getBlockHandle(hit, sx, sy);
+      if (h && h.type === 'body') {
+        if (!e.shiftKey) {
+          if (!isSel(hit)) selected = [hit];
+        } else {
+          if (isSel(hit)) selected = selected.filter(x=>x!==hit);
+          else selected.push(hit);
+        }
+        const snapOffsets = selected.map(s => ({block:s, ox:s.x, oy:s.y}));
+        dragState = {type:'move', startX:sx, startY:sy, snapOffsets};
+        updatePropsPanel();
+        render();
+        return;
+      }
+    }
+
+    
+    if (!e.shiftKey) selected = [];
+    dragState = {type:'marquee', mx:sx, my:sy, cx:sx, cy:sy};
+    updatePropsPanel();
+    render();
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const sx = e.offsetX, sy = e.offsetY;
+  const wx = sx + camX, wy = sy + camY;
+  document.getElementById('sb-mouse').textContent = `${sx}, ${sy}`;
+  document.getElementById('sb-world').textContent = `${Math.round(wx)}, ${Math.round(wy)}`;
+
+  if (!dragState) {
+    
+    const hit = getTopBlockAt(sx, sy);
+    if (hit && selected.includes(hit)) {
+      const h = getBlockHandle(hit, sx, sy);
+      if (h) {
+        if (h.type === 'rotate') canvas.style.cursor = 'crosshair';
+        else if (h.type === 'resize') canvas.style.cursor = (h.dir==='n'||h.dir==='s') ? 'ns-resize' : 'ew-resize';
+        else canvas.style.cursor = 'move';
+        return;
+      }
+    }
+    canvas.style.cursor = hit ? 'pointer' : 'default';
+    return;
+  }
+
+  const dx = sx - dragState.startX;
+  const dy = sy - dragState.startY;
+
+  if (dragState.type === 'cam') {
+    camX = dragState.camX0 - (sx - dragState.startX);
+    camY = dragState.camY0 - (sy - dragState.startY);
+    canvas.style.cursor = 'grabbing';
+    document.getElementById('sb-cam').textContent = `${Math.round(camX)}, ${Math.round(camY)}`;
+    render(); return;
+  }
+
+  if (dragState.type === 'move') {
+    for (const {block, ox, oy} of dragState.snapOffsets) {
+      block.x = snap(ox + (sx - dragState.startX));
+      block.y = snap(oy + (sy - dragState.startY));
+    }
+    updatePropsCoordsOnly();
+    render(); return;
+  }
+
+  if (dragState.type === 'resize') {
+    const b = dragState.block;
+    const {dir, sx0, sy0, bx0, by0, bw0, bh0} = dragState;
+    if (dir === 'e') { b.w = Math.max(16, snap(bw0 + (sx-sx0))); }
+    if (dir === 'w') { const nw = Math.max(16, snap(bw0 - (sx-sx0))); b.x = bx0 + bw0 - nw; b.w = nw; }
+    if (dir === 's') { b.h = Math.max(16, snap(bh0 + (sy-sy0))); }
+    if (dir === 'n') { const nh = Math.max(16, snap(bh0 - (sy-sy0))); b.y = by0 + bh0 - nh; b.h = nh; }
+    updatePropsPanel();
+    render(); return;
+  }
+
+  if (dragState.type === 'rotate') {
+    const b = dragState.block;
+    const bcx = b.x + b.w/2 - camX;
+    const bcy = b.y + b.h/2 - camY;
+    const curAngle = Math.atan2(sy - bcy, sx - bcx) * 180/Math.PI;
+    let newAngle = dragState.blockAngle0 + (curAngle - dragState.startAngle);
+    if (e.shiftKey) newAngle = Math.round(newAngle / 15) * 15;
+    b.angle = ((newAngle % 360) + 360) % 360;
+    updatePropsPanel();
+    render(); return;
+  }
+
+  if (dragState.type === 'marquee') {
+    dragState.cx = sx;
+    dragState.cy = sy;
+    
+    const rx = Math.min(dragState.mx, sx), ry = Math.min(dragState.my, sy);
+    const rw = Math.abs(sx - dragState.mx), rh = Math.abs(sy - dragState.my);
+    selected = blocks.filter(b => {
+      const bsx = b.x - camX, bsy = b.y - camY;
+      return bsx + b.w > rx && bsx < rx+rw && bsy + b.h > ry && bsy < ry+rh;
+    });
+    updatePropsPanel();
+    render(); return;
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (dragState && dragState.type !== 'cam') {
+    canvas.style.cursor = 'default';
+  }
+  if (dragState && dragState.type === 'cam') {
+    canvas.style.cursor = 'default';
+  }
+  dragState = null;
+});
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === '+' || e.key === '=') addBlock();
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selected.length) {
+    blocks = blocks.filter(b => !selected.includes(b));
+    selected = [];
+    updatePropsPanel(); render();
+  }
+  if (e.ctrlKey && e.key === 'g') { e.preventDefault(); groupSelected(); }
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); exportPy(); }
+});
+
+function updatePropsPanel() {
+  const ph = document.getElementById('props-placeholder');
+  const pc = document.getElementById('props-content');
+  if (selected.length === 0) {
+    ph.style.display = ''; pc.style.display = 'none'; return;
+  }
+  ph.style.display = 'none';
+  pc.style.display = 'flex';
+
+  const b = selected[0];
+  document.getElementById('prop-x').value = Math.round(b.x);
+  document.getElementById('prop-y').value = Math.round(b.y);
+  document.getElementById('prop-w').value = Math.round(b.w);
+  document.getElementById('prop-h').value = Math.round(b.h);
+  document.getElementById('prop-rot').value = Math.round(b.angle);
+  document.getElementById('rot-lbl').textContent = Math.round(b.angle) + '°';
+  document.getElementById('prop-layer').value = b.layer;
+  document.getElementById('prop-name').value = b.name;
+  document.getElementById('custom-color').value = b.color;
+
+  
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.className = 'type-btn';
+    if (btn.dataset.type === b.type) btn.classList.add(`active-${b.type}`);
+  });
+
+  
+  document.querySelectorAll('.color-swatch').forEach(sw => {
+    sw.classList.toggle('selected', sw.dataset.color === b.color);
+  });
+}
+
+function updatePropsCoordsOnly() {
+  if (!selected.length) return;
+  const b = selected[0];
+  document.getElementById('prop-x').value = Math.round(b.x);
+  document.getElementById('prop-y').value = Math.round(b.y);
+}
+
+['prop-x','prop-y','prop-w','prop-h','prop-layer'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    if (!selected.length) return;
+    const b = selected[0];
+    const v = parseFloat(e.target.value) || 0;
+    if (id==='prop-x') b.x = v;
+    if (id==='prop-y') b.y = v;
+    if (id==='prop-w') b.w = Math.max(10, v);
+    if (id==='prop-h') b.h = Math.max(10, v);
+    if (id==='prop-layer') b.layer = v;
+    render();
+  });
+});
+
+document.getElementById('prop-name').addEventListener('input', e => {
+  if (!selected.length) return;
+  selected[0].name = e.target.value || `obj_${selected[0].id}`;
+  render();
+});
+
+document.getElementById('prop-rot').addEventListener('input', e => {
+  if (!selected.length) return;
+  selected[0].angle = parseFloat(e.target.value);
+  document.getElementById('rot-lbl').textContent = e.target.value + '°';
+  render();
+});
+
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!selected.length) return;
+    const t = btn.dataset.type;
+    if (selected.length > 1) {
+      selected.forEach(b => { b.type = t; b.color = TYPE_COLORS[t]; });
+    } else {
+      selected[0].type = t;
+      selected[0].color = TYPE_COLORS[t];
+    }
+    updatePropsPanel(); render();
+  });
+});
+
+document.querySelectorAll('.color-swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    if (!selected.length) return;
+    selected.forEach(b => b.color = sw.dataset.color);
+    document.getElementById('custom-color').value = sw.dataset.color;
+    updatePropsPanel(); render();
+  });
+});
+
+document.getElementById('custom-color').addEventListener('input', e => {
+  if (!selected.length) return;
+  selected.forEach(b => b.color = e.target.value);
+  updatePropsPanel(); render();
+});
+
+function groupSelected() {
+  if (selected.length < 2) { notify('Выберите 2+ блока для группировки'); return; }
+  groupCount++;
+  const gid = groupCount;
+  selected.forEach(b => b.groupId = gid);
+  groups.push({id: gid, blockIds: selected.map(b=>b.id)});
+  notify(`Группа G${gid} создана (${selected.length} блоков)`);
+  render();
+}
+
+document.getElementById('btn-group').addEventListener('click', groupSelected);
+document.getElementById('btn-ungroup').addEventListener('click', () => {
+  if (!selected.length) return;
+  selected.forEach(b => b.groupId = null);
+  notify('Разгруппировано');
+  render();
+});
+document.getElementById('btn-delete-sel').addEventListener('click', () => {
+  if (!selected.length) return;
+  blocks = blocks.filter(b => !selected.includes(b));
+  selected = [];
+  updatePropsPanel(); render();
+  notify('Удалено');
+});
+
+document.getElementById('btn-add').addEventListener('click', addBlock);
+document.getElementById('btn-add2').addEventListener('click', addBlock);
+document.getElementById('btn-grid').addEventListener('click', () => {
+  showGrid = !showGrid;
+  document.getElementById('btn-grid').textContent = showGrid ? '⊞ Сетка' : '□ Сетка';
+  render();
+});
+document.getElementById('btn-snap').addEventListener('click', () => {
+  snapEnabled = !snapEnabled;
+  document.getElementById('btn-snap').textContent = snapEnabled ? '⌗ Snap' : '· Snap off';
+  render();
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (blocks.length === 0) return;
+  if (!confirm('Очистить сцену?')) return;
+  blocks = []; selected = []; groups = [];
+  document.getElementById('empty-hint').style.display = '';
+  updatePropsPanel(); render();
+  notify('Сцена очищена');
+});
+document.getElementById('btn-export').addEventListener('click', exportPy);
+
+function updateStats() {
+  const cnt = t => blocks.filter(b=>b.type===t).length;
+  document.getElementById('stat-total').textContent = blocks.length;
+  document.getElementById('stat-static').textContent = cnt('static');
+  document.getElementById('stat-physics').textContent = cnt('physics');
+  document.getElementById('stat-player').textContent = cnt('player');
+  document.getElementById('stat-kine').textContent = cnt('kinematic');
+  document.getElementById('stat-groups').textContent = new Set(blocks.filter(b=>b.groupId!==null).map(b=>b.groupId)).size;
+  document.getElementById('stat-sel').textContent = selected.length;
+}
+
+function updateRightInfo() {
+  if (selected.length === 1) {
+    const b = selected[0];
+    document.getElementById('sel-name').textContent = b.name;
+    document.getElementById('sel-type').textContent = b.type;
+    document.getElementById('sel-pos').textContent = `${Math.round(b.x)}, ${Math.round(b.y)}`;
+    document.getElementById('sel-size').textContent = `${Math.round(b.w)}×${Math.round(b.h)}`;
+    document.getElementById('sel-angle').textContent = Math.round(b.angle) + '°';
+  } else if (selected.length > 1) {
+    document.getElementById('sel-name').textContent = `${selected.length} блоков`;
+    document.getElementById('sel-type').textContent = '—';
+    document.getElementById('sel-pos').textContent = '—';
+    document.getElementById('sel-size').textContent = '—';
+    document.getElementById('sel-angle').textContent = '—';
+  } else {
+    ['sel-name','sel-type','sel-pos','sel-size','sel-angle'].forEach(id => {
+      document.getElementById(id).textContent = id === 'sel-angle' ? '0°' : '—';
+    });
+  }
+}
+
+function updateStatusBar() {
+  document.getElementById('sb-cam').textContent = `${Math.round(camX)}, ${Math.round(camY)}`;
+}
+
+function exportPy() {
+  if (blocks.length === 0) { notify('Нет блоков для экспорта'); return; }
+
+  const fname = document.getElementById('fname-lbl').textContent;
+  const lines = [];
+  lines.push('def init(engine):');
+  lines.push('    objects, groups = load_location(engine)');
+  lines.push('    engine.state["shared"]["current_objects"] = objects');
+  lines.push('    engine.state["shared"]["current_groups"] = groups');
+  lines.push('');
+  lines.push('');
+  lines.push('def load_location(engine):');
+  lines.push('    import pymunk');
+  lines.push('    objects = {}');
+  lines.push('    groups = {}');
+  lines.push('');
+
+  const groupMap = {};
+  blocks.forEach(b => {
+    if (b.groupId !== null) {
+      if (!groupMap[b.groupId]) groupMap[b.groupId] = [];
+      groupMap[b.groupId].push(b);
+    }
+  });
+
+  const standalone = blocks.filter(b => b.groupId === null);
+  standalone.forEach(b => {
+    const r = hexToRgbTuple(b.color);
+    if (b.type === 'static') {
+      lines.push(`    ${b.name} = engine.objects.spawn("static", ${Math.round(b.x)}, ${Math.round(b.y)}, w=${Math.round(b.w)}, h=${Math.round(b.h)}, layer=${b.layer})`);
+    } else if (b.type === 'physics') {
+      lines.push(`    ${b.name} = engine.objects.spawn("entity", ${Math.round(b.x)}, ${Math.round(b.y)}, w=${Math.round(b.w)}, h=${Math.round(b.h)}, layer=${b.layer})`);
+    } else if (b.type === 'player') {
+      lines.push(`    ${b.name} = engine.objects.spawn("entity", ${Math.round(b.x)}, ${Math.round(b.y)}, w=${Math.round(b.w)}, h=${Math.round(b.h)}, layer=${b.layer})`);
+      lines.push(`    ${b.name}.bind(move="wasd", speed=200)`);
+      lines.push(`    engine.camera.bind(target=${b.name}, mode="dynamic")`);
+    } else if (b.type === 'kinematic') {
+      lines.push(`    ${b.name} = engine.objects.spawn("kinematic", ${Math.round(b.x)}, ${Math.round(b.y)}, w=${Math.round(b.w)}, h=${Math.round(b.h)}, layer=${b.layer})`);
+    }
+    lines.push(`    ${b.name}.set(color=(${r}), angle=${Math.round(b.angle)})`);
+    lines.push(`    objects["${b.name}"] = ${b.name}`);
+    lines.push('');
+  });
+
+  Object.entries(groupMap).forEach(([gid, gblocks]) => {
+    const gname = `group_${gid}`;
+    gblocks.forEach(b => {
+      const r = hexToRgbTuple(b.color);
+      const typeMap = {static:'static', physics:'entity', player:'entity', kinematic:'kinematic'};
+      lines.push(`    ${b.name} = engine.objects.spawn("${typeMap[b.type]}", ${Math.round(b.x)}, ${Math.round(b.y)}, w=${Math.round(b.w)}, h=${Math.round(b.h)}, layer=${b.layer})`);
+      lines.push(`    ${b.name}.set(color=(${r}), angle=${Math.round(b.angle)})`);
+      if (b.type === 'player') {
+        lines.push(`    ${b.name}.bind(move="wasd", speed=200)`);
+      }
+      lines.push(`    objects["${b.name}"] = ${b.name}`);
+    });
+    const groupObjList = gblocks.map(b=>b.name).join(', ');
+    lines.push(`    groups["${gname}"] = engine.objects.group("${gname}", ${groupObjList})`);
+    lines.push('');
+  });
+
+  lines.push('    return objects, groups');
+
+  const code = lines.join('\n');
+  const blob = new Blob([code], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+  notify(`Экспортировано: ${fname}`);
+}
+
+function hexToRgbTuple(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r}, ${g}, ${b}`;
+}
+
+document.getElementById('fname-lbl').addEventListener('click', () => {
+  const n = prompt('Имя файла:', document.getElementById('fname-lbl').textContent);
+  if (n) document.getElementById('fname-lbl').textContent = n.endsWith('.py') ? n : n+'.py';
+});
+
+let notifTimer;
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+render();
+</script>
+</body>
+</html>
